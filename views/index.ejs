@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>My To-Do List</h1>
+        
+        <form action="/add" method="POST" class="add-form">
+            <input type="text" name="title" placeholder="Enter task title" required>
+            <select name="priority">
+                <option value="low">Low Priority</option>
+                <option value="high">High Priority</option>
+                <option value="urgent">Urgent</option>
+            </select>
+            <button type="submit">Add Task</button>
+        </form>
+
+        <% if (message) { %>
+            <div class="alert"><%= message %></div>
+        <% } %>
+
+        <div class="tasks">
+            <% tasks.forEach(task => { %>
+                <div class="task-item" data-id="<%= task._id %>">
+                    <span class="task-title"><%= task.title %></span>
+                    <span class="priority <%= task.priority %>"><%= task.priority %></span>
+                    <div class="actions">
+                        <button class="edit-btn" onclick="editTask('<%= task._id %>', '<%= task.priority %>')">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="delete-btn" onclick="deleteTask('<%= task._id %>')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>

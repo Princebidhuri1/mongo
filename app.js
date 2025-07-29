@@ -1,86 +1,73 @@
-const express = require("express");
-const bodyParser =require("body-parser");
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const app = express();
+require('dotenv').config();
 
-var app = new express;
-app.set("view engine", "ejs");
-app.use(express.urlencoded({extended:true}));   
+// Middleware
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.set('view engine', 'ejs');
 
-
-const mongoose = require("mongoose");
-mongoose.connect("mongodb://localhost:27017/todo");
-const trySchema = new mongoose.Schema({
-    name : String,
-});
-const item = mongoose.model("task",trySchema);
-// const item = mongoose.model("second",trySchema);
-
-// const todo = new item({
-//     name: "Create some videos"
-// });
-// const todo2 = new item({
-//     name: "Learn DSA"
-// });
-// const todo3 = new item({
-//     name: "Learn React"
-// });
-// const todo4 = new item({
-//     name: "Take some rest"
-// });
-// todo.save();
-// todo2.save();
-// todo3.save();
-// todo4.save();
-
-
-app.get("/",function(req, res){
-    item.find({})
-    
-        .then(foundItems => res.render("list",{dayej : foundItems}))
-        .catch (err => {
-            console.log("❌ Error retrieving items:", err);
-            // res.status(500).send("Internal Server Error");
-        });
-    }); 
-
-app.post("/",function(req,res){
-    const itemName = req.body.ele1;
-    const todo =new item({
-        name : itemName,
-    })
-    todo.save();
-    res.redirect("/");
+// MongoDB connection
+mongoose.connect(process.env.MONGODB_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
 });
 
-// app.post("/delete",function(req,res){
-//     const checkedId = req.body.checkbox1;
-//     item.findByIdAndDelete(checkedId)
-//     .then ( () => { 
-//         console.log("Item Deleted Successfully!");
-//         res.render("/");
-//     })
-//     .catch(err => {
-//         console.log("❌ Error deleting item:", err);
-//         // res.status(500).send("Internal Server Error"); // Send error response
-//     })
-// });
-
-
-app.post("/delete", function(req, res) {
-    const checkedId = req.body.checkbox1; // Get the ID from the request
-
-    item.findByIdAndDelete(checkedId) // Correct method for deletion
-        .then(() => {
-            console.log("Item Deleted Successfully!");
-            res.redirect("/"); // Redirect to the homepage after deletion
-        })
-        .catch(err => {
-            console.log("Error deleting item:", err);
-            // res.status(500).send("Internal Server Error"); // Send error response
-        });
+// Task Schema
+const taskSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  priority: { type: String, enum: ['low', 'high', 'urgent'], default: 'low' }
 });
 
+const Task = mongoose.model('Task', taskSchema);
 
-app.listen("3000",function(){
-    console.log("Server is running...");
+// Routes
+app.get('/', async (req, res) => {
+  try {
+    const tasks = await Task.find({});
+    res.render('index', { tasks, message: null });
+  } catch (error) {
+    res.render('index', { tasks: [], message: 'Error loading tasks' });
+  }
+});
+
+app.post('/add', async (req, res) => {
+  const { title, priority } = req.body;
+  
+  if (!title || title.trim() === '') {
+    const tasks = await Task.find({});
+    return res.render('index', { tasks, message: 'Task title cannot be empty!' });
+  }
+
+  try {
+    await Task.create({ title: title.trim(), priority });
+    res.redirect('/');
+  } catch (error) {
+    const tasks = await Task.find({});
+    res.render('index', { tasks, message: 'Error adding task' });
+  }
+});
+
+app.put('/edit/:id', async (req, res) => {
+  try {
+    await Task.findByIdAndUpdate(req.params.id, { priority: req.body.priority });
+    res.json({ success: true, message: 'Task updated successfully!' });
+  } catch (error) {
+    res.json({ success: false, message: 'Error updating task' });
+  }
+});
+
+app.delete('/delete/:id', async (req, res) => {
+  try {
+    await Task.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Task deleted successfully!' });
+  } catch (error) {
+    res.json({ success: false, message: 'Error deleting task' });
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
 });
