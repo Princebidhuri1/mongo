@@ -1,73 +1,124 @@
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const app = express();
-require('dotenv').config();
 
-// Middleware
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
-// MongoDB connection
 mongoose.connect(process.env.MONGODB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true
-});
+})
+.then(() => console.log('MongoDB connected successfully!'))
+.catch(err => console.error('MongoDB connection error:', err));
 
-// Task Schema
 const taskSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  priority: { type: String, enum: ['low', 'high', 'urgent'], default: 'low' }
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'high', 'urgent'],
+    default: 'low'
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 const Task = mongoose.model('Task', taskSchema);
 
-// Routes
-app.get('/', async (req, res) => {
+async function getTasksAndRender(res, message = null) {
   try {
     const tasks = await Task.find({});
-    res.render('index', { tasks, message: null });
+    console.log(`Found ${tasks.length} tasks`);
+    res.render('index', { tasks, message });
   } catch (error) {
-    res.render('index', { tasks: [], message: 'Error loading tasks' });
+    console.error('Error fetching tasks:', error);
+    res.render('index', { tasks: [], message: 'Error loading tasks. Please try again.' });
   }
+}
+
+app.get('/', async (req, res) => {
+  console.log('GET / - Loading homepage');
+  await getTasksAndRender(res);
 });
 
 app.post('/add', async (req, res) => {
   const { title, priority } = req.body;
-  
+  console.log('POST /add - Adding new task:', { title, priority });
+
   if (!title || title.trim() === '') {
-    const tasks = await Task.find({});
-    return res.render('index', { tasks, message: 'Task title cannot be empty!' });
+    console.log('Task creation failed: empty title');
+    return await getTasksAndRender(res, 'Task title cannot be empty!');
   }
 
   try {
-    await Task.create({ title: title.trim(), priority });
+    const newTask = await Task.create({ title: title.trim(), priority });
+    console.log('Task created successfully:', newTask._id);
     res.redirect('/');
   } catch (error) {
-    const tasks = await Task.find({});
-    res.render('index', { tasks, message: 'Error adding task' });
+    console.error('Error adding task:', error);
+    await getTasksAndRender(res, 'Error adding task. Please try again.');
   }
 });
 
 app.put('/edit/:id', async (req, res) => {
+  const taskId = req.params.id;
+  const newPriority = req.body.priority;
+  console.log(`PUT /edit/${taskId} - Updating priority to:`, newPriority);
+
   try {
-    await Task.findByIdAndUpdate(req.params.id, { priority: req.body.priority });
-    res.json({ success: true, message: 'Task updated successfully!' });
+    const updatedTask = await Task.findByIdAndUpdate(
+      taskId,
+      { priority: newPriority },
+      { new: true }
+    );
+
+    if (!updatedTask) {
+      console.log('Task not found for update:', taskId);
+      return res.json({ success: false, message: 'Task not found.' });
+    }
+
+    console.log('Task updated successfully:', updatedTask._id);
+    res.json({ success: true, message: 'Task updated successfully!', task: updatedTask });
   } catch (error) {
-    res.json({ success: false, message: 'Error updating task' });
+    console.error('Error updating task:', error);
+    res.json({ success: false, message: 'Error updating task. Please try again.' });
   }
 });
 
 app.delete('/delete/:id', async (req, res) => {
+  const taskId = req.params.id;
+  console.log(`DELETE /delete/${taskId} - Deleting task`);
+
   try {
-    await Task.findByIdAndDelete(req.params.id);
+    const deletedTask = await Task.findByIdAndDelete(taskId);
+
+    if (!deletedTask) {
+      console.log('Task not found for deletion:', taskId);
+      return res.json({ success: false, message: 'Task not found.' });
+    }
+
+    console.log('Task deleted successfully:', deletedTask._id);
     res.json({ success: true, message: 'Task deleted successfully!' });
   } catch (error) {
-    res.json({ success: false, message: 'Error deleting task' });
+    console.error('Error deleting task:', error);
+    res.json({ success: false, message: 'Error deleting task. Please try again.' });
   }
 });
 
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
