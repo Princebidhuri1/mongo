@@ -12,16 +12,14 @@
             <% dayej.forEach(function(items){ %>
                 <form action="/delete" method="post">
                     <div class="item">
-                        <input type="checkbox" name="checkbox1" value="<%= items._id %>" onchange="this.form.submit()">
+                        <input type="checkbox" name="checkbox1" value="<%= items._id %>" required onchange="this.form.submit()">
                         <p><%= items.name %></p>
                     </div>
                 </form>
-                
             <% }) %>
 
-
             <form action="/" method="post">
-                <input type="text" name="ele1" placeholder="Enter the task">
+                <input type="text" name="ele1" placeholder="Enter the task" required>
                 <button type="submit">+</button>
             </form>
         </div>

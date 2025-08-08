@@ -76,13 +76,15 @@ app.post('/add', async (req, res) => {
 
 app.put('/edit/:id', async (req, res) => {
   const taskId = req.params.id;
+
+  const newtitle = req.body.title;
   const newPriority = req.body.priority;
   console.log(`PUT /edit/${taskId} - Updating priority to:`, newPriority);
 
   try {
     const updatedTask = await Task.findByIdAndUpdate(
       taskId,
-      { priority: newPriority },
+      { priority: newPriority , title:newtitle },
       { new: true }
     );
 

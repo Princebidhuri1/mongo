@@ -87,3 +87,9 @@ footer{
     color: rgba(0, 0, 0, 0.5);
     text-align: center;
 }
+.input-error,
+.form-error {
+    color: red;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}

@@ -265,3 +265,9 @@ h1 {
 }
 
 
+.input-error,
+.form-error {
+    color: red;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
